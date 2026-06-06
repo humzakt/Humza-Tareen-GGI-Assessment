@@ -1,0 +1,39 @@
+---
+description: TypeScript coding standards and conventions
+globs: "**/*.ts"
+alwaysApply: false
+---
+
+# Coding Standards
+
+## File Naming
+
+- `*.constants.ts` - Pure constant values
+- `*.registry.ts` - Typed lookup tables with helper functions
+- `*.template.ts` - Factory functions for structured outputs
+- `*.types.ts` - Shared type definitions
+- `*.schema.ts` - Zod validation schemas (co-located with controllers)
+- `*.entity.ts` - Domain entities
+- `*.service.ts` - Domain/infrastructure services
+- `*.policy.ts` - Domain authorization policies
+- `*.use-case.ts` - Application layer orchestrators
+- `*.repository.interface.ts` - Repository contracts
+- `*.middleware.ts` - Express middleware
+
+## Rules
+
+- Strict TypeScript (`noUncheckedIndexedAccess`, `strictNullChecks`, etc.)
+- No `any` - use `unknown` and narrow
+- Domain layer must NOT import from Express, Prisma, or infrastructure
+- Use `createAppError('ERROR_CODE')` for all business errors
+- Use `success()`, `paginated()`, `errorResponse()` templates for responses
+- Zod body schemas must use `.strict()` to reject unknown fields
+- Log using `logger.info/warn/error(LOG_EVENTS.*, context, metadata)`
+- All DB mutations must use `prisma.$transaction()` for atomicity
+
+## Testing
+
+- Unit tests mock Prisma with jest.fn()
+- Integration tests use supertest against the Express app
+- Auth is mocked via `tests/helpers/setup.ts` (consistent keypair)
+- Generate test tokens with `getAuthHeaders()` from `tests/helpers/auth.helper.ts`

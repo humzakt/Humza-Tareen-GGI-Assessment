@@ -1,0 +1,67 @@
+---
+description: Project context and architecture overview for AI agents
+alwaysApply: true
+---
+
+# Secure Backend DDD - Project Context
+
+## What This Project Is
+
+A production-grade TypeScript backend implementing two domain modules:
+1. **AI Chat Module** - Secured chat with mocked OpenAI, quota/usage management
+2. **Subscription Bundle Module** - Subscription lifecycle with billing simulation
+
+## Tech Stack
+
+- **Runtime**: Node.js 22+, TypeScript 6.x (strict mode)
+- **Framework**: Express 5
+- **Database**: PostgreSQL 16 via Prisma 7 (with `@prisma/adapter-pg` driver adapter)
+- **Auth**: Local JWT (RS256 via `jose` library) mimicking OAuth2/OIDC
+- **Validation**: Zod 4 with `.strict()` on body schemas
+- **Logging**: Winston (structured JSON)
+- **Testing**: Jest 30 + Supertest
+
+## Architecture (Clean/DDD)
+
+```
+src/
+├── lib/           # Generic utilities, middleware, registries, templates
+├── modules/       # Domain modules (auth, chat, subscriptions)
+│   └── <module>/
+│       ├── domain/          # Entities, services, policies, repository interfaces
+│       ├── application/     # Use cases (orchestration)
+│       ├── infrastructure/  # Prisma repos, external service mocks
+│       └── controllers/     # Express routes, Zod schemas
+├── routes/        # Health & metrics endpoints
+├── app.ts         # Express app with middleware pipeline
+└── server.ts      # Bootstrap & graceful shutdown
+```
+
+## Key Design Decisions
+
+- **No external services** - Everything mocked locally (auth, OpenAI, payments)
+- **Registry pattern** - Single source of truth for error codes, tiers, roles, rate limits
+- **Template pattern** - Consistent API responses and error structures
+- **HMAC request signing** - Required beyond JWT for API access
+- **Domain layer is framework-agnostic** - Zero Express imports in domain/
+
+## Running
+
+```bash
+npm run setup         # Install + generate + migrate + seed
+npm run dev           # Development with hot reload
+npm run build && npm start  # Production
+npm test              # All 76 tests
+```
+
+## Database
+
+Prisma 7 uses the client engine with `@prisma/adapter-pg`. The `datasourceUrl` is NOT passed to PrismaClient - it goes through the adapter's `connectionString`. See `src/lib/prisma/client.ts`.
+
+## Important Patterns
+
+- Route-specific types stay in their controller file
+- Shared types live in `src/lib/types/`
+- Constants use `.constants.ts`, registries use `.registry.ts`
+- All middleware follows the Express `(req, res, next)` signature
+- Errors flow through `createAppError()` from `error-code.registry.ts`
