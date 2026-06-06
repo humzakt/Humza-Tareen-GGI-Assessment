@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.env.local
+.env.test
+keys/
+*.log
+coverage/
+.prisma/
+prisma/*.db
+
+/generated/prisma

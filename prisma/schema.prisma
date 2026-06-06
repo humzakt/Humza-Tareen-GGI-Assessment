@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE_MOCK
+}
+
+enum SubscriptionTier {
+  BASIC
+  PRO
+  ENTERPRISE
+}
+
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+}
+
+enum UsageType {
+  FREE
+  BUNDLE
+}
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  passwordHash      String
+  name              String
+  role              Role      @default(USER)
+  authProvider      AuthProvider @default(LOCAL)
+  freeMessagesUsed  Int       @default(0)
+  freeQuotaResetDate DateTime @default(now())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  chatMessages    ChatMessage[]
+  subscriptions   Subscription[]
+  usageLogs       UsageLog[]
+  paymentLogs     PaymentLog[]
+  refreshTokens   RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("refresh_tokens")
+}
+
+model ChatMessage {
+  id            String   @id @default(uuid())
+  userId        String
+  question      String
+  answer        String
+  tokenUsage    Json
+  correlationId String
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("chat_messages")
+}
+
+model Subscription {
+  id                String           @id @default(uuid())
+  userId            String
+  tier              SubscriptionTier
+  billingCycle      BillingCycle
+  maxMessages       Int
+  remainingMessages Int
+  price             Float
+  startDate         DateTime
+  endDate           DateTime
+  renewalDate       DateTime
+  autoRenew         Boolean          @default(true)
+  active            Boolean          @default(true)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usageLogs   UsageLog[]
+  paymentLogs PaymentLog[]
+
+  @@index([userId, active])
+  @@index([endDate, autoRenew, active])
+  @@map("subscriptions")
+}
+
+model UsageLog {
+  id             String    @id @default(uuid())
+  userId         String
+  subscriptionId String?
+  type           UsageType
+  correlationId  String
+  createdAt      DateTime  @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("usage_logs")
+}
+
+model PaymentLog {
+  id             String   @id @default(uuid())
+  userId         String
+  subscriptionId String
+  amount         Float
+  success        Boolean
+  failureReason  String?
+  correlationId  String
+  createdAt      DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([userId])
+  @@index([subscriptionId])
+  @@map("payment_logs")
+}
